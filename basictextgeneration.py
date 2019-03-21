@@ -6,7 +6,7 @@ from keras.layers import Dropout
 from keras.layers import LSTM
 from keras.utils import np_utils
 
-// ----------------- load data-----------------------------
+# ----------------- load data-----------------------------
 text=(open("./sampletext.txt").read())
 text=text.lower()
 characters = sorted(list(set(text)))
@@ -27,7 +27,7 @@ X_modified = np.reshape(X, (len(X), seq_length, 1))
 X_modified = X_modified / float(len(characters))
 Y_modified = np_utils.to_categorical(Y)
 
-// ------------------build model------------------------------
+# ------------------build model------------------------------
 model = Sequential()
 model.add(LSTM(400, input_shape=(X_modified.shape[1],X_modified.shape[2]), return_sequences=True))
 model.add(Dropout(0.2))
@@ -36,7 +36,7 @@ model.add(Dropout(0.2))
 model.add(Dense(Y_modified.shape[1], activation='softmax'))
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 
-// ----------------generation---------------------------------
+# ----------------generation---------------------------------
 string_mapped = X[99]
 for i in range(seq_length):
 x = np.reshape(string_mapped,(1,len(string_mapped), 1))
