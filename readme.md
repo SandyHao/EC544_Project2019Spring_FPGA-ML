@@ -2,6 +2,10 @@ Group work for ec544 project
 
 The basic CNN is used to do dichotomy
 
+We also try to explore model from https://pytorch.org/docs/stable/torchvision/models.html
+
+These are models that have and complete layers and pretrained weights.
+
 we can pruning layer by layer or use a general judgement to cut weights near zero
 
 the second method is more useful when dealing with DNN or other complicated networks
