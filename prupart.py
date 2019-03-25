@@ -25,3 +25,49 @@ sess.run(tf.assign(var[0],conv1_temp)) # store all value of new network in weigh
 
 
 # ------------------weights kernal------------------------------
+# mwthod from https://github.com/cnnpruning/Kernel-Pruning/blob/master/kernel_prune.py
+total = 0
+total_kernel=0
+for m in model.modules(): # count total weights for a kernal
+    if isinstance(m, nn.Conv2d):
+        total += m.weight.data.numel()
+        oc,ic,h,w=m.weight.size()
+        total_kernel+=m.weight.data.numel()/(w*h)
+conv_weights = torch.zeros(total).cuda()
+conv_max_weights = torch.zeros(total).cuda()
+
+index = 0
+for m in model.modules():
+    if isinstance(m, nn.Conv2d):
+        size = m.weight.data.numel()
+        conv_weights[index:(index+size)] = m.weight.data.view(-1).abs().clone()
+        oc,ic,h,w=m.weight.size()
+        weight_max=torch.max(m.weight.data.abs().view(oc,ic,w*h),-1)[0].view(oc,ic,1,1).expand(oc,ic,h,w)
+        conv_max_weights[index:(index+size)] = weight_max.contiguous().view(-1).clone()
+        index += size
+
+y, i = torch.sort(conv_max_weights)
+thre_index = int(total * args.percent)
+# --------------- prune --------------------
+thre = y[thre_index]
+zero_flag=False
+pruned = 0
+print('Percent {} ,Pruning threshold: {}'.format(args.percent,thre))
+index = 0
+for k, m in enumerate(model.modules()):
+    if isinstance(m, nn.Conv2d):
+        size = m.weight.data.numel()
+        oc,ic,h,w=m.weight.size()
+        mask = conv_max_weights[index:(index+size)].gt(thre).float().cuda().detach().view(oc,ic,h,w)
+
+        # weight_copy = m.weight.data.abs().clone()
+        # mask = weight_copy.gt(thre).float().cuda()
+
+        pruned = pruned + mask.numel() - torch.sum(mask)
+        m.weight.data.mul_(mask)
+        index += size
+        if int(torch.sum(mask)) == 0:
+            zero_flag = True
+        print('layer index: {:d} \t total params: {:d} \t remaining params: {:d}'.
+              format(k, mask.numel(), int(torch.sum(mask))))
+print('Total conv params: {}, Pruned conv params: {}, Pruned ratio: {}'.format(total, pruned, pruned / total))
